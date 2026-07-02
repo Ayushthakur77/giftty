@@ -17,6 +17,14 @@ import AdminLayout from "./layouts/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminProducts from "./pages/admin/AdminProducts";
 import AdminOrders from "./pages/admin/AdminOrders";
+import AdminCategories from "./pages/admin/AdminCategories";
+import AdminBanners from "./pages/admin/AdminBanners";
+import AdminCoupons from "./pages/admin/AdminCoupons";
+import AdminInventory from "./pages/admin/AdminInventory";
+import AdminDeliveryCharges from "./pages/admin/AdminDeliveryCharges";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
+import AdminAuditLogs from "./pages/admin/AdminAuditLogs";
+import AdminSettings from "./pages/admin/AdminSettings";
 
 function CustomerLayout() {
   return (
@@ -50,6 +58,14 @@ export default function App() {
           <Route index element={<AdminDashboard />} />
           <Route path="products" element={<AdminProducts />} />
           <Route path="orders" element={<AdminOrders />} />
+          <Route path="categories" element={<AdminCategories />} />
+          <Route path="banners" element={<AdminBanners />} />
+          <Route path="coupons" element={<AdminCoupons />} />
+          <Route path="inventory" element={<AdminInventory />} />
+          <Route path="delivery" element={<AdminDeliveryCharges />} />
+          <Route path="analytics" element={<AdminAnalytics />} />
+          <Route path="audit-logs" element={<AdminAuditLogs />} />
+          <Route path="settings" element={<AdminSettings />} />
         </Route>
       </Routes>
     </BrowserRouter>

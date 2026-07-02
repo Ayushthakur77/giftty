@@ -21,7 +21,15 @@ export default function AdminLayout() {
   const NAV_ITEMS = [
     { name: 'Dashboard', path: '/admin', icon: LayoutDashboard },
     { name: 'Products', path: '/admin/products', icon: Package },
+    { name: 'Categories', path: '/admin/categories', icon: Package },
     { name: 'Orders', path: '/admin/orders', icon: ShoppingBag },
+    { name: 'Inventory', path: '/admin/inventory', icon: Package },
+    { name: 'Banners', path: '/admin/banners', icon: Package },
+    { name: 'Coupons', path: '/admin/coupons', icon: Package },
+    { name: 'Delivery', path: '/admin/delivery', icon: Package },
+    { name: 'Analytics', path: '/admin/analytics', icon: Package },
+    { name: 'Audit Logs', path: '/admin/audit-logs', icon: Package },
+    { name: 'Settings', path: '/admin/settings', icon: Package },
   ];
 
   return (

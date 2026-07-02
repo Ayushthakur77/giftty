@@ -2,6 +2,7 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
+import { apiRouter } from "./src/server/routes.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,11 +14,12 @@ async function startServer() {
   app.use(express.json());
 
   // API Routes
-  app.get("/api/health", (req, res) => {
+  app.use("/api", apiRouter);
+
+  // Health route
+  app.get("/health", (req, res) => {
     res.json({ status: "ok", message: "GiftJoy API is running" });
   });
-
-  // Future API routes for products, orders, admin etc. will go here
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {

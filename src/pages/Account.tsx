@@ -1,66 +1,83 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useOrderStore } from "../store/useOrderStore";
 import { Package, LogOut } from "lucide-react";
+import { signInWithPopup } from 'firebase/auth';
+import { auth, googleAuthProvider } from '../lib/firebase';
 
 export default function Account() {
-  const { user, isAuthenticated, login, logout } = useAuthStore();
-  const getUserOrders = useOrderStore(state => state.getUserOrders);
-  
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
-  const [isLogin, setIsLogin] = useState(true);
+  const { user, token, isAuthenticated, login, logout } = useAuthStore();
+  const [orders, setOrders] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated && token) {
+      fetchOrders();
+    }
+  }, [isAuthenticated, token]);
+
+  const fetchOrders = async () => {
+    try {
+      const res = await fetch('/api/orders', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setOrders(data);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setIsLoading(true);
+    try {
+      const result = await signInWithPopup(auth, googleAuthProvider);
+      const token = await result.user.getIdToken();
+      
+      const res = await fetch('/api/auth/sync', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (res.ok) {
+        const dbUser = await res.json();
+        login(dbUser, token);
+      }
+    } catch (error) {
+      console.error("Login failed:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (!isAuthenticated) {
     return (
       <div className="w-full max-w-md mx-auto px-10 py-20">
-        <div className="bg-surface p-8 rounded-2xl border border-outline-variant shadow-sm">
+        <div className="bg-surface p-8 rounded-2xl border border-outline-variant shadow-sm text-center">
           <h1 className="text-2xl font-bold tracking-tight mb-2 text-on-surface">
-            {isLogin ? 'Welcome Back' : 'Create Account'}
+            Welcome Back
           </h1>
           <p className="text-sm text-on-surface-variant mb-6">
-            {isLogin ? 'Sign in to access your orders and wishlist.' : 'Join GiftJoy to start curating perfect moments.'}
+            Sign in to access your orders and wishlist.
           </p>
           
-          <form className="space-y-4" onSubmit={(e) => {
-            e.preventDefault();
-            const isAdmin = email === 'admin@giftjoy.com';
-            login({
-              id: Math.random().toString(36).substr(2, 9),
-              email,
-              name: name || email.split('@')[0],
-              role: isAdmin ? 'ADMIN' : 'USER',
-              createdAt: new Date().toISOString()
-            });
-          }}>
-            {!isLogin && (
-              <div>
-                <label className="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-widest">Name</label>
-                <input required type="text" value={name} onChange={e => setName(e.target.value)} className="w-full border border-outline p-3 rounded-lg text-sm bg-surface outline-none focus:ring-1 focus:ring-primary" />
-              </div>
-            )}
-            <div>
-              <label className="block text-xs font-bold text-on-surface-variant mb-1 uppercase tracking-widest">Email</label>
-              <input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full border border-outline p-3 rounded-lg text-sm bg-surface outline-none focus:ring-1 focus:ring-primary" />
-            </div>
-            <button type="submit" className="w-full bg-primary text-on-primary font-bold py-3 rounded-xl shadow-sm hover:opacity-90 transition-opacity">
-              {isLogin ? 'Sign In' : 'Sign Up'}
-            </button>
-          </form>
-
-          <p className="text-center text-sm text-on-surface-variant mt-6">
-            {isLogin ? "Don't have an account? " : "Already have an account? "}
-            <button onClick={() => setIsLogin(!isLogin)} className="font-bold text-primary hover:underline">
-              {isLogin ? 'Sign Up' : 'Sign In'}
-            </button>
-          </p>
-          {isLogin && <p className="text-center text-xs mt-4 text-outline-variant">Use admin@giftjoy.com for admin access</p>}
+          <button 
+            onClick={handleGoogleLogin} 
+            disabled={isLoading}
+            className="w-full bg-primary text-on-primary font-bold py-3 rounded-xl shadow-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            {isLoading ? 'Signing In...' : 'Sign In with Google'}
+          </button>
         </div>
       </div>
     );
   }
-
-  const orders = getUserOrders(user!.id);
 
   return (
     <div className="w-full max-w-[1280px] mx-auto px-10 py-8">
@@ -93,7 +110,7 @@ export default function Account() {
         </div>
       ) : (
         <div className="space-y-6">
-          {orders.map(order => (
+          {orders.map((order: any) => (
             <div key={order.id} className="bg-surface border border-outline-variant rounded-2xl p-6">
               <div className="flex justify-between items-center mb-4 border-b border-outline pb-4">
                 <div>
@@ -101,18 +118,9 @@ export default function Account() {
                   <p className="text-sm text-on-surface-variant">{new Date(order.createdAt).toLocaleDateString()}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-lg text-primary">${order.totalAmount.toFixed(2)}</p>
+                  <p className="font-bold text-lg text-primary">${Number(order.totalAmount).toFixed(2)}</p>
                   <span className="inline-block mt-1 px-3 py-1 bg-surface-container text-[10px] font-bold rounded uppercase tracking-wider">{order.status}</span>
                 </div>
-              </div>
-              <div className="space-y-2">
-                {order.items.map((item, i) => (
-                  <div key={i} className="text-sm flex justify-between">
-                    <span className="text-on-surface-variant">
-                      {'product' in item ? `${item.quantity}x ${item.product.name}` : `1x Custom Box (${item.items.length} items)`}
-                    </span>
-                  </div>
-                ))}
               </div>
             </div>
           ))}
