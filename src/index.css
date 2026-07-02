@@ -1,0 +1,131 @@
+@import "tailwindcss";
+
+@theme {
+  --color-surface: #ffffff;
+  --color-surface-dim: #f5f5f4;
+  --color-surface-bright: #ffffff;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #fafaf9;
+  --color-surface-container: #f5f5f4;
+  --color-surface-container-high: #e7e5e4;
+  --color-surface-container-highest: #d6d3d1;
+  --color-on-surface: #1c1917;
+  --color-on-surface-variant: #78716c;
+  --color-inverse-surface: #1c1917;
+  --color-inverse-on-surface: #fafaf9;
+  --color-outline: #e7e5e4;
+  --color-outline-variant: #f5f5f4;
+  --color-surface-tint: #ff6b6b;
+  --color-primary: #ff6b6b;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #1c1917;
+  --color-on-primary-container: #ffffff;
+  --color-inverse-primary: #ffb59c;
+  --color-secondary: #5f5e5e;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #e7e5e4;
+  --color-on-secondary-container: #1c1917;
+  --color-tertiary: #a8a29e;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #f5f5f4;
+  --color-on-tertiary-container: #1c1917;
+  --color-error: #ef4444;
+  --color-on-error: #ffffff;
+  --color-error-container: #fee2e2;
+  --color-on-error-container: #991b1b;
+  --color-primary-fixed: #ff6b6b;
+  --color-primary-fixed-dim: #ff6b6b;
+  --color-on-primary-fixed: #ffffff;
+  --color-on-primary-fixed-variant: #ffffff;
+  --color-secondary-fixed: #e7e5e4;
+  --color-secondary-fixed-dim: #d6d3d1;
+  --color-on-secondary-fixed: #1c1917;
+  --color-on-secondary-fixed-variant: #44403c;
+  --color-tertiary-fixed: #f5f5f4;
+  --color-tertiary-fixed-dim: #e7e5e4;
+  --color-on-tertiary-fixed: #1c1917;
+  --color-on-tertiary-fixed-variant: #44403c;
+  --color-background: #fafaf9;
+  --color-on-background: #1c1917;
+
+  --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+
+  --text-label-sm: 12px;
+  --text-label-sm--line-height: 16px;
+  --text-label-md: 14px;
+  --text-label-md--line-height: 20px;
+  --text-body-md: 16px;
+  --text-body-md--line-height: 24px;
+  --text-body-lg: 18px;
+  --text-body-lg--line-height: 28px;
+  --text-headline-md: 24px;
+  --text-headline-md--line-height: 32px;
+  --text-headline-lg-mobile: 28px;
+  --text-headline-lg-mobile--line-height: 36px;
+  --text-headline-lg: 32px;
+  --text-headline-lg--line-height: 40px;
+  --text-headline-xl: 40px;
+  --text-headline-xl--line-height: 48px;
+
+  --spacing-base: 8px;
+  --spacing-xs: 4px;
+  --spacing-sm: 12px;
+  --spacing-md: 24px;
+  --spacing-lg: 48px;
+  --spacing-xl: 80px;
+  --spacing-gutter: 24px;
+  --spacing-margin-mobile: 16px;
+  --spacing-margin-desktop: 64px;
+
+  --radius-sm: 0.25rem;
+  --radius-DEFAULT: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-on-background font-sans antialiased;
+  }
+}
+
+.ambient-shadow {
+  box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.interactive-shadow {
+  transition: all 0.3s ease;
+}
+
+.interactive-shadow:hover {
+  box-shadow: 0px 8px 30px rgba(0, 0, 0, 0.08);
+  transform: scale(1.02);
+}
+
+.glass-nav {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-surface-container-low;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-outline-variant rounded-sm;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-outline;
+}
+
+.hide-scrollbar::-webkit-scrollbar { 
+  display: none; 
+}
+.hide-scrollbar { 
+  -ms-overflow-style: none; 
+  scrollbar-width: none; 
+}

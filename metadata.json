@@ -1,0 +1,6 @@
+{
+  "name": "GiftJoy",
+  "description": "Premium personalized gifts e-commerce platform with custom box builder.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
