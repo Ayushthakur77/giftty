@@ -29,7 +29,7 @@ export default function AdminBanners() {
       const data = await res.json();
       // Sort by sortOrder
       data.sort((a: any, b: any) => a.sortOrder - b.sortOrder);
-      setBanners(data);
+      setBanners(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
     } finally {

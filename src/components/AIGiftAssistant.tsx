@@ -28,7 +28,7 @@ export default function AIGiftAssistant() {
         const prodRes = await fetch('/api/products');
         if (prodRes.ok) {
           const data = await prodRes.json();
-          setProducts(data);
+          setProducts(Array.isArray(data) ? data : []);
         }
       }
 

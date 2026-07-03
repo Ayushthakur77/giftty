@@ -25,7 +25,7 @@ export default function AdminCMS() {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
-      setPages(data);
+      setPages(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
     } finally {

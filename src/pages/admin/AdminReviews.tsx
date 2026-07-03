@@ -25,7 +25,7 @@ export default function AdminReviews() {
       });
       if (!res.ok) throw new Error("Failed to fetch reviews");
       const data = await res.json();
-      setReviews(data);
+      setReviews(Array.isArray(data) ? data : []);
     } catch (err: any) {
       setError(err.message);
     } finally {

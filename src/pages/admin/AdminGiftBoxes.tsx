@@ -16,7 +16,7 @@ export default function AdminGiftBoxes() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
-      setBoxes(data);
+      setBoxes(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
     } finally {

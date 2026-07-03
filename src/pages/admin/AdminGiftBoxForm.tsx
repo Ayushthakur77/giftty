@@ -34,12 +34,12 @@ export default function AdminGiftBoxForm() {
       headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(res => res.json())
-      .then(data => setProducts(data))
+      .then(data => setProducts(Array.isArray(data) ? data : []))
       .catch(console.error);
 
     fetch('/api/categories')
       .then(res => res.json())
-      .then(data => setCategories(data))
+      .then(data => setCategories(Array.isArray(data) ? data : []))
       .catch(console.error);
 
     if (isEditing && token) {

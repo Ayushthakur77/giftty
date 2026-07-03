@@ -57,7 +57,7 @@ export default function Account() {
       });
       if (res.ok) {
         const data = await res.json();
-        setOrders(data);
+        setOrders(Array.isArray(data) ? data : []);
       }
     } catch (e) {
       console.error(e);

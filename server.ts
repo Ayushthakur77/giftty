@@ -25,6 +25,10 @@ async function startServer() {
   // API Routes
   app.use("/api", apiRouter);
 
+  app.use("/api", (req, res) => {
+    res.status(404).json({ error: "API Route not found" });
+  });
+
   // Health route
   app.get("/health", (req, res) => {
     res.json({ status: "ok", message: "GiftJoy API is running" });

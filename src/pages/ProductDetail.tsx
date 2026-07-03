@@ -26,7 +26,7 @@ export default function ProductDetail() {
         .then(res => res.json())
         .then(data => {
           if (Array.isArray(data)) {
-             setReviews(data);
+             setReviews(Array.isArray(data) ? data : []);
           }
         })
         .catch(console.error)

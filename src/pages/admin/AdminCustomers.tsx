@@ -25,7 +25,7 @@ export default function AdminCustomers() {
       });
       if (!res.ok) throw new Error("Failed to fetch customers");
       const data = await res.json();
-      setCustomers(data);
+      setCustomers(Array.isArray(data) ? data : []);
     } catch (err: any) {
       setError(err.message);
     } finally {

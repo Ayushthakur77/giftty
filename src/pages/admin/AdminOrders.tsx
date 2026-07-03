@@ -31,7 +31,7 @@ export default function AdminOrders() {
       });
       if (!res.ok) throw new Error("Failed to fetch orders");
       const data = await res.json();
-      setOrders(data);
+      setOrders(Array.isArray(data) ? data : []);
     } catch (err: any) {
       setError(err.message);
     } finally {
