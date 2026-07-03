@@ -1,0 +1,300 @@
+import { Router } from "express";
+import { requireAuth, requireAdmin } from "../middleware/auth.ts";
+import { db } from "../db/index.ts";
+import { users, products, categories, orders, orderItems, reviews, coupons, deliveryCharges, settings, auditLogs, banners, productCustomizationOptions, giftBoxes, inventoryLog, deliveryZones, shippingRules, deliveryHolidays } from "../db/schema.ts";
+import { getOrCreateUser } from "../db/users.ts";
+import { getRazorpay } from "../lib/razorpay.ts";
+import crypto from "crypto";
+import { GoogleGenAI, Type } from "@google/genai";
+import { eq, desc, and, sql, ilike, inArray } from "drizzle-orm";
+import rateLimit from "express-rate-limit";
+import { getUpcomingOccasion } from "../lib/occasionCalendar.ts";
+
+export const apiRouter = Router();
+
+const aiRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // limit each IP to 20 requests per windowMs
+  message: { error: "Too many requests to AI endpoints, please try again later." }
+});
+
+// Auth sync
+apiRouter.post("/auth/sync", requireAuth, async (req: any, res) => {
+  try {
+    const { email, uid, name } = req.user;
+    const dbUser = await getOrCreateUser(uid, email, name || email.split("@")[0]);
+    res.json(dbUser);
+  } catch (error: any) {
+    console.error("Auth sync error:", error.message || error);
+    res.status(500).json({ error: error.message || "Failed to sync user" });
+  }
+});
+
+// Products
+apiRouter.get("/products/trending", async (req, res) => {
+  try {
+    const upcoming = getUpcomingOccasion();
+    // Use jsonb contained operator to check if occasionTags contains the upcoming occasion
+    const trendingProducts = await db.select().from(products)
+      .where(sql`${products.occasionTags} @> ${JSON.stringify([upcoming])}::jsonb`)
+      .orderBy(desc(products.createdAt))
+      .limit(10);
+    
+    // Fallback if no specific tags match
+    if (trendingProducts.length === 0) {
+      const fallback = await db.select().from(products).orderBy(desc(products.createdAt)).limit(10);
+      return res.json({ occasion: "Bestsellers", products: fallback });
+    }
+
+    res.json({ occasion: upcoming, products: trendingProducts });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+apiRouter.get("/products", async (req, res) => {
+  try {
+    const allProducts = await db.select().from(products).orderBy(desc(products.createdAt));
+    res.json(allProducts);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Categories
+apiRouter.get("/categories", async (req, res) => {
+  try {
+    const allCategories = await db.select().from(categories).orderBy(categories.name);
+    res.json(allCategories);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// AI endpoints
+apiRouter.post("/ai/recommend", aiRateLimiter, async (req, res) => {
+  try {
+    const { context } = req.body;
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: `Based on this user context: "${context}", suggest 3 gift categories or types. Keep it brief.`,
+    });
+    res.json({ recommendation: response.text });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+apiRouter.post("/ai/greeting", aiRateLimiter, async (req, res) => {
+  try {
+    const { occasion, relationship, tone } = req.body;
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: `Write a short, heartfelt greeting card message for a ${occasion} to a ${relationship}, in a ${tone} tone. Limit to 3 sentences.`,
+    });
+    res.json({ message: response.text });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+apiRouter.post("/ai/auto-build", aiRateLimiter, async (req, res) => {
+  try {
+    const { prompt, budget } = req.body;
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+    // Fetch available products
+    const availableProducts = await db.select().from(products).where(eq(products.inventoryCount, 0)); // wait, inventoryCount 0? No, let's just fetch all or where it's > 0. Actually, the mock data might have inventoryCount 0. Let's just fetch all.
+    // For now, assume all products in db.
+    const allProds = await db.select().from(products);
+
+    // We don't have a 'boxes' table yet. Let's assume some default boxes.
+    const availableBoxes = [
+      { id: 1, name: "Premium Velvet Box", price: 15, description: "Luxurious velvet finish" },
+      { id: 2, name: "Eco-friendly Kraft Box", price: 5, description: "Minimalist and sustainable" },
+      { id: 3, name: "Signature Magnetic Box", price: 10, description: "Our classic secure box" }
+    ];
+
+    const prodInfo = allProds.map(p => ({
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      price: Number(p.price),
+      occasionTags: p.occasionTags
+    }));
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: `
+        You are an expert gift curator. Build a custom gift box based on this user request: "${prompt}".
+        ${budget ? `Total budget: $${budget}` : ''}
+        
+        Available Boxes:
+        ${JSON.stringify(availableBoxes)}
+        
+        Available Products:
+        ${JSON.stringify(prodInfo)}
+        
+        Pick exactly 1 box.
+        Pick at least 1 product.
+        Make sure the total cost (box + products) doesn't exceed the budget if provided.
+        Write a short, thoughtful gift note.
+        Return the result as JSON.
+      `,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            boxId: { type: Type.INTEGER },
+            productSelections: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  productId: { type: Type.INTEGER },
+                  quantity: { type: Type.INTEGER }
+                },
+                required: ["productId", "quantity"]
+              }
+            },
+            giftNote: { type: Type.STRING },
+            reasoning: { type: Type.STRING }
+          },
+          required: ["boxId", "productSelections", "giftNote", "reasoning"]
+        }
+      }
+    });
+
+    const result = JSON.parse(response.text);
+    
+    // Validate response (very basic)
+    if (!availableBoxes.find(b => b.id === result.boxId)) {
+      result.boxId = availableBoxes[0].id; // fallback
+    }
+
+    // Filter out invalid product ids
+    result.productSelections = result.productSelections.filter((p: any) => allProds.some(ap => ap.id === p.productId));
+
+    res.json(result);
+  } catch (error: any) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+apiRouter.post("/ai/tag-occasions", requireAdmin, aiRateLimiter, async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    
+    const validTags = ["Valentine's Day", "Diwali", "Janmashtami", "Raksha Bandhan", "Holi", "Birthday", "Anniversary", "Wedding", "Mother's Day", "Father's Day", "Christmas", "New Year", "Friendship Day"];
+    
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: `
+        Analyze this product:
+        Name: ${name}
+        Description: ${description}
+        
+        Which of these occasions is it most suitable for? Return a JSON array of strings from this exact list: ${JSON.stringify(validTags)}
+      `,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.STRING
+          }
+        }
+      }
+    });
+
+    const result = JSON.parse(response.text);
+    res.json({ tags: result });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Orders & Checkout
+apiRouter.post("/checkout/create-order", requireAuth, async (req: any, res) => {
+  try {
+    const { amount, receipt } = req.body; // amount in smallest currency unit (paise)
+    const razorpay = getRazorpay();
+    const order = await razorpay.orders.create({
+      amount,
+      currency: "INR",
+      receipt: receipt || `rcpt_${Date.now()}`
+    });
+    res.json(order);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+apiRouter.post("/checkout/verify", requireAuth, async (req: any, res) => {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, orderData } = req.body;
+    const key_secret = process.env.RAZORPAY_KEY_SECRET;
+    
+    if (key_secret) {
+      const generated_signature = crypto.createHmac('sha256', key_secret)
+        .update(razorpay_order_id + "|" + razorpay_payment_id)
+        .digest('hex');
+        
+      if (generated_signature !== razorpay_signature) {
+        return res.status(400).json({ error: "Invalid signature" });
+      }
+    }
+
+    // Save order in DB
+    const dbUser = await getOrCreateUser(req.user.uid, req.user.email, req.user.name || "");
+    
+    const newOrder = await db.insert(orders).values({
+      userId: dbUser.id,
+      totalAmount: orderData.totalAmount,
+      status: "PROCESSING",
+      shippingAddress: orderData.shippingAddress,
+      razorpayOrderId: razorpay_order_id,
+      razorpayPaymentId: razorpay_payment_id
+    }).returning();
+
+    // Increment coupon usage if coupon was used
+    if (orderData.couponId) {
+      await db.update(coupons)
+        .set({ timesUsed: sql`${coupons.timesUsed} + 1` })
+        .where(eq(coupons.id, Number(orderData.couponId)));
+    } else if (orderData.couponCode) {
+      await db.update(coupons)
+        .set({ timesUsed: sql`${coupons.timesUsed} + 1` })
+        .where(ilike(coupons.code, String(orderData.couponCode).trim()));
+    }
+    
+    // Insert order items
+    // (In a real app we'd map and insert all items, simplified here)
+    if (orderData.items && orderData.items.length > 0) {
+      const itemsToInsert = orderData.items.map((i: any) => ({
+        orderId: newOrder[0].id,
+        productId: i.product?.id || null, // null for custom boxes
+        quantity: i.quantity || 1,
+        price: i.product ? i.product.price : i.totalPrice,
+        isCustomBox: !!i.items, // custom boxes have items array
+        customBoxDetails: i.items || null,
+        engravingText: i.engraving || null
+      }));
+      await db.insert(orderItems).values(itemsToInsert);
+    }
+
+    res.json(newOrder[0]);
+  } catch (error: any) {
+    console.error("Verify error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+apiRouter.get("/orders", requireAuth, async (req: any, res) => {
+  try {
+    const dbUser = await getOrCreateUser(req.user.uid, req.user.email, req.user.name || "");

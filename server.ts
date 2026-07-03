@@ -1,13 +1,22 @@
 import express from "express";
 import path from "path";
-import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 import { apiRouter } from "./src/server/routes.ts";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 async function startServer() {
+  const requiredEnvVars = [
+    'SQL_HOST', 'SQL_USER', 'SQL_PASSWORD', 'SQL_DB_NAME',
+    'GEMINI_API_KEY', 'RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET',
+    'FIREBASE_SERVICE_ACCOUNT_KEY'
+  ];
+
+  for (const envVar of requiredEnvVars) {
+    if (!process.env[envVar]) {
+      console.error(`FATAL ERROR: Missing required environment variable: ${envVar}`);
+      process.exit(1);
+    }
+  }
+
   const app = express();
   const PORT = 3000;
 

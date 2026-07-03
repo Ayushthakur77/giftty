@@ -2,17 +2,53 @@ import { useParams, Link } from "react-router-dom";
 import { useProductStore } from "../store/useProductStore";
 import { useCartStore } from "../store/useCartStore";
 import { useWishlistStore } from "../store/useWishlistStore";
-import { Heart, ShoppingBag, ArrowLeft } from "lucide-react";
-import { useState } from "react";
+import { Heart, ShoppingBag, ArrowLeft, Star, Flag, MessageSquare } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useAuthStore } from "../store/useAuthStore";
 
 export default function ProductDetail() {
   const { id } = useParams();
   const products = useProductStore((state) => state.products);
   const addItem = useCartStore((state) => state.addItem);
   const { items: wishlistItems, addItem: addWishlist, removeItem: removeWishlist, isInWishlist } = useWishlistStore();
+  const { token, user } = useAuthStore();
+  
   const [quantity, setQuantity] = useState(1);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(true);
 
   const product = products.find(p => p.id === id);
+
+  useEffect(() => {
+    if (product) {
+      // Note: we fetch reviews filtering by APPROVED
+      fetch(`/api/products/${product.id}/reviews`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+             setReviews(data);
+          }
+        })
+        .catch(console.error)
+        .finally(() => setLoadingReviews(false));
+    }
+  }, [product]);
+
+  const handleReport = async (reviewId: number) => {
+    if (!token) return alert("Please log in to report a review.");
+    try {
+      const res = await fetch(`/api/reviews/${reviewId}/report`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        alert("Review reported successfully.");
+        // Hide or mark as reported in UI if desired, or just leave it
+      }
+    } catch (err: any) {
+      alert("Failed to report review.");
+    }
+  };
 
   if (!product) {
     return (
@@ -76,6 +112,54 @@ export default function ProductDetail() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="mt-16 pt-16 border-t border-outline-variant">
+        <h2 className="text-2xl font-bold mb-8">Customer Reviews</h2>
+        
+        {loadingReviews ? (
+          <p className="text-on-surface-variant">Loading reviews...</p>
+        ) : reviews.length === 0 ? (
+          <div className="p-8 text-center border border-dashed border-outline-variant rounded-2xl bg-surface text-on-surface-variant">
+            <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
+            <p>No reviews yet. Be the first to review this product!</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {reviews.map((r, i) => (
+              <div key={i} className="bg-surface p-6 rounded-2xl border border-outline-variant shadow-sm relative">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <p className="font-bold">{r.user?.name || 'Anonymous'}</p>
+                    <p className="text-xs text-on-surface-variant">{new Date(r.review.createdAt).toLocaleDateString()}</p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {Array(5).fill(0).map((_, j) => (
+                      <Star key={j} className={`w-4 h-4 ${j < r.review.rating ? 'fill-warning text-warning' : 'fill-surface text-outline'}`} />
+                    ))}
+                  </div>
+                </div>
+                
+                <p className="text-sm text-on-surface mb-4">{r.review.comment}</p>
+                
+                {r.review.adminReply && (
+                  <div className="mt-4 bg-surface-container-low p-4 rounded-lg border border-outline-variant">
+                    <p className="text-xs font-bold text-primary mb-1 uppercase tracking-wider">GiftJoy Team</p>
+                    <p className="text-sm">{r.review.adminReply}</p>
+                  </div>
+                )}
+                
+                <button 
+                  onClick={() => handleReport(r.review.id)}
+                  className="absolute bottom-4 right-4 text-xs font-bold text-on-surface-variant flex items-center gap-1 hover:text-error transition-colors"
+                  title="Report Abuse"
+                >
+                  <Flag className="w-3 h-3" /> Report
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

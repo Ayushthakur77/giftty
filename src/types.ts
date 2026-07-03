@@ -31,8 +31,15 @@ export interface CustomBoxItem {
 
 export interface CustomBox {
   id: string;
-  items: CustomBoxItem[];
+  name?: string;
+  basePrice?: number | string;
+  image?: string;
+  isGiftBox?: boolean;
+  items: any[];
   giftNote?: string;
+  greetingCard?: string;
+  ribbon?: string;
+  filler?: string;
   totalPrice: number;
 }
 
