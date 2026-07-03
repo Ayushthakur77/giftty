@@ -112,7 +112,7 @@ export default function Home() {
               {trendingProducts.map((product) => (
                 <div key={product.id} className="group flex flex-col bg-background rounded-2xl border border-outline overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
                   <Link to={`/product/${product.id}`} className="relative aspect-square overflow-hidden bg-surface-dim">
-                    <img src={product.images?.[0] || 'https://via.placeholder.com/300'} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <img src={product.images?.[0] || 'https://picsum.photos/1024/400'} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     {product.tags?.[0] && (
                       <div className="absolute top-4 left-4 bg-background/90 backdrop-blur text-foreground px-3 py-1 rounded-full text-xs font-medium border border-outline/50">
                         {product.tags[0]}

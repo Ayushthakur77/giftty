@@ -4,7 +4,7 @@ import { Loader2, Save } from "lucide-react";
 
 export default function AdminSettings() {
   const { token } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<'store' | 'ai' | 'payments'>('store');
+  const [activeTab, setActiveTab] = useState<'store' | 'ai' | 'payments' | 'security'>('store');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   

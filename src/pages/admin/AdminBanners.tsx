@@ -160,7 +160,7 @@ export default function AdminBanners() {
                       <div className="flex flex-col gap-1 text-gray-400">
                         <button onClick={() => handleMove(index, 'up', type)} disabled={index === 0} className="hover:text-gray-900 disabled:opacity-30"><GripVertical className="w-4 h-4" /></button>
                       </div>
-                      <img src={banner.image || 'https://via.placeholder.com/150'} alt="Banner" className="h-16 w-32 object-cover rounded border" />
+                      <img src={banner.image || 'https://picsum.photos/1024/400'} alt="Banner" className="h-16 w-32 object-cover rounded border" />
                       <div>
                         <h3 className="font-medium text-gray-900">{banner.title || "(Untitled)"}</h3>
                         <p className="text-sm text-gray-500">{banner.link}</p>

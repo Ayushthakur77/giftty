@@ -103,7 +103,7 @@ export default function AdminInventory() {
       });
       if (!res.ok) throw new Error("Failed to fetch product history");
       const data = await res.json();
-      setHistoryLogs(data);
+      setHistoryLogs(Array.isArray(data) ? data : []);
     } catch (err: any) {
       console.error(err);
     } finally {

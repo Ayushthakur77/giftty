@@ -58,7 +58,24 @@ function PlaceholderPage({ name, phase }: { name: string, phase: number }) {
   );
 }
 
+
+import { useEffect } from 'react';
+import { auth } from './lib/firebase';
+import { useAuthStore } from './store/useAuthStore';
+
 export default function App() {
+  useEffect(() => {
+    const unsubscribe = auth.onIdTokenChanged(async (user) => {
+      if (user) {
+        const token = await user.getIdToken();
+        useAuthStore.setState({ token, isAuthenticated: true });
+      } else {
+        useAuthStore.setState({ token: null, user: null, isAuthenticated: false });
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   return (
     <BrowserRouter>
       <Routes>
@@ -96,8 +113,7 @@ export default function App() {
           <Route path="reviews" element={<AdminReviews />} />
           <Route path="banners" element={<AdminBanners />} />
           <Route path="cms" element={<AdminCMS />} />
-          <Route path="cms" element={<PlaceholderPage name="CMS Pages" phase={6} />} />
-          <Route path="settings" element={<AdminSettings />} />
+                    <Route path="settings" element={<AdminSettings />} />
           <Route path="settings-ai" element={<PlaceholderPage name="AI Settings" phase={6} />} />
           <Route path="settings-payment" element={<PlaceholderPage name="Payment Settings" phase={6} />} />
           <Route path="security" element={<PlaceholderPage name="Security" phase={7} />} />

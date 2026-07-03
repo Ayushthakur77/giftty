@@ -1,4 +1,4 @@
-import { LayoutDashboard, Package, ShoppingBag, LogOut, Tags, Map, FileText, Settings, Shield, BarChart, Truck, Box } from "lucide-react";
+import { CheckSquare, Square, LayoutDashboard, Package, ShoppingBag, LogOut, Tags, Map, FileText, Settings, Shield, BarChart, Truck, Box } from "lucide-react";
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
 import { useEffect } from "react";
@@ -79,6 +79,8 @@ export default function AdminLayout() {
     { name: 'Settings', path: '/admin/settings', icon: Settings },
     { name: 'Security', path: '/admin/security', icon: Shield },
     { name: 'Reports', path: '/admin/analytics', icon: BarChart },
+    { name: 'Permissions', path: '/admin/permissions', icon: CheckSquare },
+    { name: 'Audit Logs', path: '/admin/audit-logs', icon: Square },
   ];
 
   return (
